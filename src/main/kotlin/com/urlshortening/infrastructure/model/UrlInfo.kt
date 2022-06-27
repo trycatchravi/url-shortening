@@ -14,5 +14,6 @@ data class UrlInfo (
     @GeneratedValue(strategy = GenerationType.AUTO)
     val Id: Long ?=null,
     val originalUrl: String ?=null,
+    val shortUrl: String ? = null,
     val createdAt: LocalDateTime
 )

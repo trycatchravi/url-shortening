@@ -1,14 +1,19 @@
 package com.urlshortening.application
 
+import com.google.common.hash.Hashing
 import com.urlshortening.infrastructure.model.UrlInfo
-import com.urlshortening.infrastructure.repository.UrlRepository
+import com.urlshortening.infrastructure.repository.UrlInfoRepository
 import org.apache.commons.validator.routines.UrlValidator
 import org.springframework.stereotype.Service
+import java.nio.charset.Charset
 import java.time.LocalDateTime
 import java.util.*
 
+
+private const val HOSTNAME_PREFIX = "http://rkb/"
+
 @Service
-class UrlShorteningService(val urlRepository: UrlRepository, val baseConversion: BaseConversion) {
+class UrlShorteningService(val urlInfoRepository: UrlInfoRepository) {
 
     fun saveUrl(url: String): String {
         val urlValidator = UrlValidator(arrayOf("http", "https"))
@@ -16,23 +21,26 @@ class UrlShorteningService(val urlRepository: UrlRepository, val baseConversion:
             throw RuntimeException("Invalid URL.");
         }
 
-        var urlInfo:UrlInfo = urlRepository.findByOriginalUrl(url)
+        val urlInfo: UrlInfo? = urlInfoRepository.findByOriginalUrl(url)
         return if (Objects.isNull(urlInfo)) {
-            urlInfo = UrlInfo(null, url!!, LocalDateTime.now())
-            urlRepository.save(urlInfo)
-            baseConversion.encode(urlInfo.Id!!)!!
+            val urlInfo = UrlInfo(null, url, encode(url), LocalDateTime.now())
+            urlInfoRepository.save(urlInfo)
+            HOSTNAME_PREFIX+urlInfo.shortUrl!!
         } else {
-            baseConversion.encode(urlInfo.Id!!)!!
+           HOSTNAME_PREFIX+urlInfo!!.shortUrl!!
         }
     }
 
     fun getUrl(shortUrl: String): String {
-        val id = baseConversion.decode(shortUrl)
-        val urlInfo: Optional<UrlInfo> = urlRepository.findById(id)
-        if (urlInfo.isEmpty) {
-            throw RuntimeException("No such key exists");
+        val urlInfo: UrlInfo? = urlInfoRepository.findByShortUrl(shortUrl.replace(HOSTNAME_PREFIX,""))
+        if (Objects.isNull(urlInfo)){
+            throw RuntimeException("No Url found for $shortUrl");
         }
-        return urlInfo.get().originalUrl!!
+        return urlInfo!!.originalUrl!!
+    }
+
+    fun encode(url: String): String? {
+        return Hashing.murmur3_32().hashString(url, Charset.defaultCharset()).toString()
     }
 
 }

@@ -34,16 +34,4 @@ class UrlShorteningController(val urlShorteningService: UrlShorteningService) {
         }
     }
 
-    @GetMapping("/getAndRedirect")
-    fun getUrlAndRedirect(@RequestParam shortUrl: String?) {
-         try {
-            val url = urlShorteningService.getUrl(shortUrl!!)
-            val uri: URI = URI.create(url)
-            ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).location(uri)
-        }
-        catch (ex: RuntimeException) {
-            ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.message)
-        }
-    }
-
 }
